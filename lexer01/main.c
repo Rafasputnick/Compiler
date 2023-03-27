@@ -4,7 +4,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum Token { OPERADOR, INDEFINIDO };
+#define FOREACH_TOKEN(TOKEN) \
+        TOKEN(Soma)   \
+        TOKEN(Subtracao)  \
+        TOKEN(Multiplicacao)  \
+        TOKEN(Divisao)  \
+        TOKEN(Indefinido)  \
+
+#define GENERATE_ENUM(ENUM) ENUM,
+#define GENERATE_STRING(STRING) #STRING,
+
+enum Token {
+    FOREACH_TOKEN(GENERATE_ENUM)
+};
+
+static const char *TOKEN_STRING[] = {
+    FOREACH_TOKEN(GENERATE_STRING)
+};
 
 typedef struct TokensValues {
 	enum Token token;
@@ -16,8 +32,6 @@ typedef struct HeadsLists {
 	TokenValue *list;
 } HeadList;
 
-bool isOperator(char c) { return c == '+' || c == '-'; }
-
 void addToken(HeadList *head, enum Token token, void *value) {
 	head->size += 1;
 	if (head->size == 1) {
@@ -26,40 +40,31 @@ void addToken(HeadList *head, enum Token token, void *value) {
 		head->list = realloc(head->list, head->size * sizeof(TokenValue));
 	}
 
-	if (token == OPERADOR) {
-		head->list[head->size - 1].token = OPERADOR;
-		head->list[head->size - 1].value = calloc(3, sizeof(char));
-		((char *)(head->list[head->size - 1].value))[0] = ((char *)value)[0];
-		((char *)(head->list[head->size - 1].value))[1] = '\0';
-
-	} else {
-		head->list[head->size - 1].token = INDEFINIDO;
-		head->list[head->size - 1].value = calloc(3, sizeof(char));
-		((char *)(head->list[head->size - 1].value))[0] = ((char *)value)[0];
-		((char *)(head->list[head->size - 1].value))[1] = '\0';
-	}
+	head->list[head->size - 1].token = token;
+	head->list[head->size - 1].value = calloc(2, sizeof(char));
+	((char *)(head->list[head->size - 1].value))[0] = ((char *)value)[0];
+	((char *)(head->list[head->size - 1].value))[1] = '\0';
 }
 
 void tokenizar(HeadList *head, char *s) {
 	for (int i = 0; s[i] != '\0'; i++) {
-		if (isOperator(s[i])) {
-			addToken(head, OPERADOR, &s[i]);
-		} else {
-			addToken(head, INDEFINIDO, &s[i]);
+		switch(s[i]){
+			case '+':
+				addToken(head, Soma, &s[i]);
+				break;
+			case '-':
+				addToken(head, Subtracao, &s[i]);
+				break;
+			case '*':
+				addToken(head, Multiplicacao, &s[i]);
+				break;
+			case '/':
+				addToken(head, Divisao, &s[i]);
+				break;
+			default:
+				addToken(head, Indefinido, &s[i]);
+				break;
 		}
-	}
-}
-
-void getTokenStr(enum Token token, char *str) {
-	switch (token) {
-	case OPERADOR:
-		strcpy(str, "Operador");
-		break;
-	case INDEFINIDO:
-		strcpy(str, "Indefinido");
-		break;
-	default:
-		break;
 	}
 }
 
@@ -70,18 +75,17 @@ void putInString(char *str, int *i, char value) {
 
 char *printTokenList(HeadList *head, char *str) {
 	uint64_t iList;
-	char *tokenStr = calloc(25, sizeof(char));
 	int *iStr = malloc(sizeof(int));
 	*iStr = 0;
 	putInString(str, iStr, '[');
 	putInString(str, iStr, '\n');
 
 	for (iList = 0; iList < head->size; iList++) {
-		getTokenStr(head->list[iList].token, tokenStr);
+		
 		putInString(str, iStr, '\t');
 
-		strcpy(str + *iStr, tokenStr);
-		*iStr += strlen(tokenStr);
+		strcpy(str + *iStr, TOKEN_STRING[head->list[iList].token]);
+		*iStr += strlen(TOKEN_STRING[head->list[iList].token]);
 
 		putInString(str, iStr, '(');
 		putInString(str, iStr, '\n');
@@ -103,15 +107,16 @@ char *printTokenList(HeadList *head, char *str) {
 	putInString(str, iStr, ']');
 	putInString(str, iStr, '\n');
 
-	free(tokenStr);
 	free(iStr);
 	return str;
 }
+
 HeadList *createHeadList() {
 	HeadList *head = malloc(sizeof(HeadList));
 	head->size = 0;
 	return head;
 }
+
 void freeHeadList(HeadList *head) {
 	for (uint64_t i = 0; i < head->size; i++) {
 		free(head->list[i].value);
@@ -120,11 +125,47 @@ void freeHeadList(HeadList *head) {
 	free(head);
 }
 
-int main(void) {
+void throwError(char *message) {
+	if (message == NULL || message[0] == '\0') {
+		printf("Error: Unspecified\n");
+	} else {
+		printf("Error: %s\n", message);
+	}
+	exit(1);
+}
+
+void validateMalloc(void *pointer) {
+	if (pointer == NULL) {
+		throwError("Malloc return null");
+	}
+}
+
+int main(int argc, char **argv) {
+	if (argc < 2)
+		throwError("Not found file path");
+	
 	HeadList *head = createHeadList();
 
+	FILE *file = fopen(argv[1], "r");
+
+	if (file == NULL)
+		throwError("Opening file");
+
+	fseek(file, 0, SEEK_END);
+	uint16_t fileSize = ftell(file);
+	rewind(file);
+
+	char *program = (char *)malloc(sizeof(char) * fileSize);
+	validateMalloc(program);
+
+   size_t resultSize = fread(program, 1, fileSize, file);
+   if (resultSize != fileSize)
+		throwError("Reading file");
+	
+	fclose(file);
+	
 	char *str = calloc(1000, sizeof(char));
-	tokenizar(head, "++- +");
+	tokenizar(head, program);
 	printf("TOKENS: %s", printTokenList(head, str));
 
 	freeHeadList(head);
