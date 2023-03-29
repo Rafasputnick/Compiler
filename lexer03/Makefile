@@ -18,4 +18,4 @@ format:
 	clang-format -i -style=file */.c 
 
 valgrind:
-	valgrind --leak-check=full ./src/main
+	valgrind --leak-check=full ./main a.txt
