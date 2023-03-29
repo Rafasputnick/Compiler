@@ -75,8 +75,8 @@ void tokenizar(HeadList *head, char *s) {
           addToken(head, Reais, &num, sizeof(float));
         } else {
           // Inteiros
-          int num = atoi(numStr);
-          addToken(head, Inteiros, &num, sizeof(int));
+          unsigned int num = atoi(numStr);
+          addToken(head, Inteiros, &num, sizeof(unsigned int));
         }
       } else {
         addToken(head, Indefinido, numStr, strlen(numStr));
@@ -139,7 +139,7 @@ char *printTokenList(HeadList *head, char *str) {
     if (isNumber) {
       char *numStr = calloc(sizeof(char), 25);
       if (head->list[iList].token == Inteiros) {
-        sprintf(numStr, "%d", *((int *)(head->list[iList].value)));
+        sprintf(numStr, "%u", *((unsigned int *)(head->list[iList].value)));
       } else {
         sprintf(numStr, "%f", *((float *)(head->list[iList].value)));
       }
