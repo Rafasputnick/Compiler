@@ -205,16 +205,19 @@ float number(HeadList *head, int index){
 
 float term(HeadList *head, int index, float res){
 	if(head->size == 1) return *((float *)(head->list[0].value));
-	if(head->size == 2) throwError("Invalid code");
+	if(head->size == 2) throwError("Invalid expression");
 	res += number(head, index);
-	res += number(head, index + 2);
+	index++;
+	if(head->list[index].token != Soma) throwError("Invalid expression");
+	index++;
+	res += number(head, index);
 	return res;
 }
 
 float expression(HeadList *head, int index){
 	float res = 0;
 	if(head->size == 0) return res;
-	if(head->size > 3) throwError("Invalid code");
+	if(head->size > 3) throwError("Invalid expression");
 	return term(head, index, res);
 }
 
