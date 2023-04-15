@@ -291,6 +291,7 @@ void next_token(state *s) {
                     case '/': s->type = TOK_INFIX; s->function = divide; break;
                     case '^': s->type = TOK_INFIX; s->function = pow; break;
                     case '%': s->type = TOK_INFIX; s->function = fmod; break;
+                    case '!': s->type = TOK_INFIX; s->function = fac; break;
                     case '(': s->type = TOK_OPEN; break;
                     case ')': s->type = TOK_CLOSE; break;
                     case ',': s->type = TOK_SEP; break;
@@ -418,9 +419,27 @@ static te_expr *base(state *s) {
     return ret;
 }
 
+static te_expr *factorial(state *s) {
+    /* <factorial>     =    {"!"} <base> */
+    te_expr *ret = base(s);
+    CHECK_NULL(ret);
+
+    while (s->type == TOK_INFIX && s->function == fac) {
+        te_fun2 t = s->function;
+        next_token(s);
+
+        te_expr *prev = ret;
+        ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, prev);
+        CHECK_NULL(ret);
+
+        ret->function = t;
+    }        
+
+    return ret;
+}
 
 static te_expr *power(state *s) {
-    /* <power>     =    {("-" | "+")} <base> */
+    /* <power>     =    {("-" | "+")} <factorial> */
     int sign = 1;
     while (s->type == TOK_INFIX && (s->function == add || s->function == sub)) {
         if (s->function == sub) sign = -sign;
@@ -430,9 +449,9 @@ static te_expr *power(state *s) {
     te_expr *ret;
 
     if (sign == 1) {
-        ret = base(s);
+        ret = factorial(s);
     } else {
-        te_expr *b = base(s);
+        te_expr *b = factorial(s);
         CHECK_NULL(b);
 
         ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, b);
