@@ -9,9 +9,8 @@
             "type": "gdb",
             "request": "launch",
             "target": "main",
-            "arguments": "a.txt",
-            "cwd": "${workspaceFolder}/lexer03/",
-            "preLaunchTask": "build",
+            "cwd": "${workspaceFolder}/parser02/",
+            "preLaunchTask": "compile",
             "valuesFormatting": "parseText"
         }
     ]
