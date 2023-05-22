@@ -5,14 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FOREACH_TOKEN(TOKEN)                                                                                                                                                                           \
-  TOKEN(Soma)                                                                                                                                                                                          \
-  TOKEN(Subtracao)                                                                                                                                                                                     \
-  TOKEN(Multiplicacao)                                                                                                                                                                                 \
-  TOKEN(Divisao)                                                                                                                                                                                       \
-  TOKEN(Exponenciacao)                                                                                                                                                                                 \
-  TOKEN(Inteiros)                                                                                                                                                                                      \
-  TOKEN(Reais)                                                                                                                                                                                         \
+#define FOREACH_TOKEN(TOKEN)                                                   \
+  TOKEN(Soma)                                                                  \
+  TOKEN(Subtracao)                                                             \
+  TOKEN(Multiplicacao)                                                         \
+  TOKEN(Divisao)                                                               \
+  TOKEN(Exponenciacao)                                                         \
+  TOKEN(Inteiros)                                                              \
+  TOKEN(Reais)                                                                 \
   TOKEN(Indefinido)
 
 #define GENERATE_ENUM(ENUM) ENUM,
@@ -21,6 +21,20 @@
 enum Token { FOREACH_TOKEN(GENERATE_ENUM) };
 
 static const char *TOKEN_STRING[] = {FOREACH_TOKEN(GENERATE_STRING)};
+
+#define NOP 00
+#define STA 16
+#define LDA 32
+#define ADD 48
+#define OR 64
+#define AND 80
+#define NOT 96
+#define JMP 128
+#define JN 144
+#define JZ 160
+#define HLT 240
+
+#define INDEX_LIMIT 255
 
 typedef struct TokensValues {
   enum Token token;
@@ -31,6 +45,8 @@ typedef struct HeadsLists {
   uint64_t size;
   TokenValue *list;
 } HeadList;
+
+bool invalidExpression = false;
 
 void addToken(HeadList *head, enum Token token, void *value, size_t valueSize) {
   head->size += 1;
@@ -113,14 +129,15 @@ void tokenizar(HeadList *head, char *s) {
 }
 
 void putInString(char *target, int *iTarget, char *source) {
-  for(size_t i = 0; i < strlen(source); i++){
-	target[*iTarget] = source[i];
-  	(*iTarget)++;	  
+  for (size_t i = 0; i < strlen(source); i++) {
+    target[*iTarget] = source[i];
+    (*iTarget)++;
   }
 }
 
-bool isNumberToken(HeadList *head, int index){
-	return head->list[index].token == Inteiros || head->list[index].token == Reais;
+bool isNumberToken(HeadList *head, int index) {
+  return head->list[index].token == Inteiros ||
+         head->list[index].token == Reais;
 }
 
 char *printTokenList(HeadList *head, char *str) {
@@ -131,13 +148,13 @@ char *printTokenList(HeadList *head, char *str) {
   bool isNumber = false;
   for (iList = 0; iList < head->size; iList++) {
     isNumber = isNumberToken(head, iList);
-    
-	putInString(str, iStr, "\t");
-	strcpy(str + *iStr, TOKEN_STRING[head->list[iList].token]);
+
+    putInString(str, iStr, "\t");
+    strcpy(str + *iStr, TOKEN_STRING[head->list[iList].token]);
     *iStr += strlen(TOKEN_STRING[head->list[iList].token]);
 
     putInString(str, iStr, "(\n\t\t");
-    
+
     if (isNumber) {
       char *numStr = calloc(sizeof(char), 25);
       if (head->list[iList].token == Inteiros) {
@@ -183,7 +200,20 @@ void throwError(char *message) {
   } else {
     printf("Error: %s\n", message);
   }
-  exit(1);
+  invalidExpression = true;
+  // exit(1);
+}
+
+bool itsLanguageMnemonic(uint8_t mn) {
+  return mn == NOP || mn == STA || mn == LDA || mn == ADD || mn == OR ||
+         mn == AND || mn == NOT || mn == JMP || mn == JN || mn == JZ ||
+         mn == HLT;
+}
+
+void validateIndex(int index) {
+	if (index < 0 || index >= INDEX_LIMIT) {
+		throwError("Try to use wrong index from tape");
+	}
 }
 
 void validateMalloc(void *pointer) {
@@ -192,71 +222,112 @@ void validateMalloc(void *pointer) {
   }
 }
 
-float number(HeadList *head, int index){
-	if (isNumberToken(head,index)){
-		if(head->list[index].token == Inteiros){
-			return *((int *)(head->list[index].value)) * 1.0;
-		}
-		return *((float *)(head->list[index].value));
-	}
-	throwError("Invalid number");
-	return 0;
+float number(HeadList *head, int index) {
+  if (isNumberToken(head, index)) {
+    if (head->list[index].token == Inteiros) {
+      return *((int *)(head->list[index].value)) * 1.0;
+    }
+    return *((float *)(head->list[index].value));
+  }
+  if (!invalidExpression)
+    throwError("Invalid number");
+  return 0;
 }
 
-float term(HeadList *head, int index, float res){
-	if(head->size == 1) return *((float *)(head->list[0].value));
-	if(head->size == 2) throwError("Invalid expression");
-	res += number(head, index);
-	index++;
-	if(head->list[index].token != Soma) throwError("Invalid expression");
-	index++;
-	res += number(head, index);
-	return res;
+float term(HeadList *head, int index, float res) {
+  if (head->size == 1)
+    return *((float *)(head->list[0].value));
+  if (head->size == 2 && !invalidExpression)
+    throwError("Invalid expression");
+  res += number(head, index);
+  index++;
+  int token = head->list[index].token;
+  if (token != Soma && token != Subtracao && !invalidExpression)
+    throwError("Invalid expression");
+  index++;
+  if (token == Soma)
+    res += number(head, index);
+  else
+    res -= number(head, index);
+  return res;
 }
 
-float expression(HeadList *head, int index){
-	float res = 0;
-	if(head->size == 0) return res;
-	if(head->size > 3) throwError("Invalid expression");
-	return term(head, index, res);
+float expression(HeadList *head, int index) {
+  float res = 0;
+  if (head->size == 0)
+    return res;
+  if (head->size > 3)
+    throwError("Invalid expression");
+  return term(head, index, res);
 }
 
-float parser(HeadList *head){
-	float res = 0;
-	res += expression(head, 0);
-	return res;
+float parser(HeadList *head) {
+  float res = 0;
+  res += expression(head, 0);
+  return res;
 }
 
-int main(int argc, char **argv) {
-  if (argc < 2)
-    throwError("Not found file path");
+bool itsNegative(uint8_t num) {
+  return (num >> 7) == 1;
+}
 
+int main() {
   HeadList *head = createHeadList();
 
-  FILE *file = fopen(argv[1], "r");
+  char data[256];
+  memset(data, ' ', 256);
+  printf("> ");
 
-  if (file == NULL)
-    throwError("Opening file");
+	uint8_t pc = 0;
+	uint8_t ac = 127;
+  uint8_t *tape = calloc(sizeof(uint8_t) * (INDEX_LIMIT + 1) );
+  bool jmp = false;
+  while(pc <= INDEX_LIMIT){
+    validateIndex(pc);
+    
+    switch(tape[pc]){
+      case NOP:
+        break;
+      case STA:
+        break;
+      case LDA:
+        break;
+      case ADD:
+        break;
+      case OR:
+        break;
+      case AND:
+        break;      
+      case NOT:
+        break;      
+      case JMP:
+        jmp = true;
+        break;      
+      case JN:
+        break;      
+      case JZ:
+        break;      
+      case HLT:
+        break;
+    }
+    if(!jmp) pc++;
+    jmp = false;
+  }
+	
+	// while (fgets(data, 256, stdin) && strcmp(data, "quit\n") != 0) {
+  //   tokenizar(head, data);
+  //   float res = parser(head);
+  //   if (!invalidExpression)
+  //     printf("-> %f\n", res);
 
-  fseek(file, 0, SEEK_END);
-  uint16_t fileSize = ftell(file);
-  rewind(file);
+  //   freeHeadList(head);
+  //   head = createHeadList();
+  //   invalidExpression = false;
 
-  char *program = (char *)calloc(sizeof(char), (fileSize + 1));
-  validateMalloc(program);
+  //   printf("> ");
+  // }
 
-  size_t resultSize = fread(program, 1, fileSize, file);
-  if (resultSize != fileSize)
-    throwError("Reading file");
-
-  fclose(file);
-
-  char *str = calloc(1000, sizeof(char));
-  tokenizar(head, program);
-	printf("%f\n", parser(head));
-
-  free(program);
+  free(tape);
   freeHeadList(head);
-  free(str);
   return 0;
 }
