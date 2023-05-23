@@ -9,7 +9,7 @@
             "type": "gdb",
             "request": "launch",
             "target": "main",
-            "cwd": "${workspaceFolder}/parser02/",
+            "cwd": "${workspaceFolder}/nre/",
             "preLaunchTask": "compile",
             "valuesFormatting": "parseText"
         }

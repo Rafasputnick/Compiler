@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [{
         "label": "compile",
-        "command": "cd parser02 && make build",
+        "command": "cd nre && make build",
         "type": "shell",
         "presentation": {
             "echo": false,

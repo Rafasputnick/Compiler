@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define HEADER_END_INDEX 3
+
 #define FOREACH_TOKEN(TOKEN)                                                                                                                                                                           \
   TOKEN(Soma)                                                                                                                                                                                          \
   TOKEN(Subtracao)                                                                                                                                                                                     \
@@ -198,7 +200,7 @@ void throwError(char *message) {
     printf("Error: %s\n", message);
   }
   invalidExpression = true;
-  // exit(1);
+  exit(1);
 }
 
 bool itsLanguageMnemonic(uint8_t mn) { return mn == NOP || mn == STA || mn == LDA || mn == ADD || mn == OR || mn == AND || mn == NOT || mn == JMP || mn == JN || mn == JZ || mn == HLT; }
@@ -262,21 +264,64 @@ float parser(HeadList *head) {
 
 bool itsNegative(uint8_t num) { return (num >> 7) == 1; }
 
-int main() {
+int main(int argc, char **argv) {
+  uint8_t *programText = (uint8_t *)malloc(sizeof(uint8_t) * 260);
+  if (programText == NULL) {
+    throwError("Malloc return null");
+  }
+  // if (argc < 2)
+  // 	throwError("Not found file path");
+
+  // char *filePath = calloc(strlen(argv[1]), sizeof(char));
+  // strcpy(filePath, argv[1]);
+
+  // char *fileExtension = calloc(5, sizeof(char));
+  // strcpy(fileExtension,filePath + strlen(filePath) - 4);
+
+  // if(strcmp(fileExtension, ".nar") != 0)
+  // 	throwError("Wrong extension, needs to be '.nar'");
+
+  // FILE *file = fopen(argv[1], "rb");
+  //  if (file == NULL) {
+  //     perror("Error");
+  //     exit(1);
+  //  }
+
+  //  fseek(file, 0, SEEK_END);
+  //  uint16_t fileSize = ftell(file);
+  //  rewind(file);
+
+  //  size_t resultSize = fread(programText, 1, fileSize, file);
+  //  if (resultSize != fileSize) {
+  //     throwError("Reading file");
+  //  }
+
+  //  fclose(file);
+
+  // Simulando o arquivo
+  programText[0] = (uint8_t)atoi("43");
+  programText[1] = (uint8_t)atoi("1");
+  programText[2] = (uint8_t)atoi("2");
+
+  uint8_t neanderSignature = programText[0];
+  uint8_t ac = programText[1];
+  uint8_t pc = programText[2];
+
+  if (neanderSignature != 42) {
+    throwError("Unkown signature");
+  }
+
   HeadList *head = createHeadList();
 
   char data[256];
-  memset(data, ' ', 256);
+  memset(data, '\0', 256);
   printf("> ");
 
-  uint8_t pc = 0;
-  uint8_t ac = 127;
-  uint8_t *tape = calloc(sizeof(uint8_t) * (INDEX_LIMIT + 1));
   bool jmp = false;
   while (pc <= INDEX_LIMIT) {
     validateIndex(pc);
 
-    switch (tape[pc]) {
+    switch (programText[pc]) {
     case NOP:
       break;
     case STA:
@@ -319,7 +364,7 @@ int main() {
   //   printf("> ");
   // }
 
-  free(tape);
+  free(programText);
   freeHeadList(head);
   return 0;
 }
