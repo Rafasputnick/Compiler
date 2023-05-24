@@ -5,12 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FOREACH_TOKEN(TOKEN)                                                                                                                                                                           \
-  TOKEN(Soma)                                                                                                                                                                                          \
-  TOKEN(Subtracao)                                                                                                                                                                                     \
-  TOKEN(Multiplicacao)                                                                                                                                                                                 \
-  TOKEN(Divisao)                                                                                                                                                                                       \
-  TOKEN(Exponenciacao)                                                                                                                                                                                 \
+#define FOREACH_TOKEN(TOKEN)                                                   \
+  TOKEN(Soma)                                                                  \
+  TOKEN(Subtracao)                                                             \
+  TOKEN(Multiplicacao)                                                         \
+  TOKEN(Divisao)                                                               \
+  TOKEN(Exponenciacao)                                                         \
   TOKEN(Indefinido)
 
 #define GENERATE_ENUM(ENUM) ENUM,
@@ -38,7 +38,8 @@ void addToken(HeadList *head, enum Token token, void *value, int valueSize) {
     head->list = realloc(head->list, head->size * sizeof(TokenValue));
   }
   head->list[head->size - 1].token = token;
-  head->list[head->size - 1].value = calloc((size_t)(valueSize + 1), sizeof(char));
+  head->list[head->size - 1].value =
+      calloc((size_t)(valueSize + 1), sizeof(char));
   int i;
   for (i = 0; i < valueSize; i++) {
     ((char *)(head->list[head->size - 1].value))[i] = ((char *)value)[i];

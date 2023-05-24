@@ -53,7 +53,17 @@ For log = natural log uncomment the next line. */
 
 typedef double (*te_fun2)(double, double);
 
-enum { TOK_NULL = TE_CLOSURE7 + 1, TOK_ERROR, TOK_END, TOK_SEP, TOK_OPEN, TOK_CLOSE, TOK_NUMBER, TOK_VARIABLE, TOK_INFIX };
+enum {
+  TOK_NULL = TE_CLOSURE7 + 1,
+  TOK_ERROR,
+  TOK_END,
+  TOK_SEP,
+  TOK_OPEN,
+  TOK_CLOSE,
+  TOK_NUMBER,
+  TOK_VARIABLE,
+  TOK_INFIX
+};
 
 enum { TE_CONSTANT = 1 };
 
@@ -77,18 +87,20 @@ typedef struct state {
 #define IS_PURE(TYPE) (((TYPE)&TE_FLAG_PURE) != 0)
 #define IS_FUNCTION(TYPE) (((TYPE)&TE_FUNCTION0) != 0)
 #define IS_CLOSURE(TYPE) (((TYPE)&TE_CLOSURE0) != 0)
-#define ARITY(TYPE) (((TYPE) & (TE_FUNCTION0 | TE_CLOSURE0)) ? ((TYPE)&0x00000007) : 0)
+#define ARITY(TYPE)                                                            \
+  (((TYPE) & (TE_FUNCTION0 | TE_CLOSURE0)) ? ((TYPE)&0x00000007) : 0)
 #define NEW_EXPR(type, ...) new_expr((type), (const te_expr *[]){__VA_ARGS__})
-#define CHECK_NULL(ptr, ...)                                                                                                                                                                           \
-  if ((ptr) == NULL) {                                                                                                                                                                                 \
-    __VA_ARGS__;                                                                                                                                                                                       \
-    return NULL;                                                                                                                                                                                       \
+#define CHECK_NULL(ptr, ...)                                                   \
+  if ((ptr) == NULL) {                                                         \
+    __VA_ARGS__;                                                               \
+    return NULL;                                                               \
   }
 
 static te_expr *new_expr(const int type, const te_expr *parameters[]) {
   const int arity = ARITY(type);
   const int psize = sizeof(void *) * arity;
-  const int size = (sizeof(te_expr) - sizeof(void *)) + psize + (IS_CLOSURE(type) ? sizeof(void *) : 0);
+  const int size = (sizeof(te_expr) - sizeof(void *)) + psize +
+                   (IS_CLOSURE(type) ? sizeof(void *) : 0);
   te_expr *ret = malloc(size);
   CHECK_NULL(ret);
 
@@ -230,7 +242,8 @@ static const te_variable *find_builtin(const char *name, int len) {
   return 0;
 }
 
-static const te_variable *find_lookup(const state *s, const char *name, int len) {
+static const te_variable *find_lookup(const state *s, const char *name,
+                                      int len) {
   int iters;
   const te_variable *var;
   if (!s->lookup)
@@ -273,7 +286,8 @@ void next_token(state *s) {
       if (isalpha(s->next[0])) {
         const char *start;
         start = s->next;
-        while (isalpha(s->next[0]) || isdigit(s->next[0]) || (s->next[0] == '_'))
+        while (isalpha(s->next[0]) || isdigit(s->next[0]) ||
+               (s->next[0] == '_'))
           s->next++;
 
         const te_variable *var = find_lookup(s, start, s->next - start);
@@ -372,7 +386,9 @@ static te_expr *expr(state *s);
 static te_expr *power(state *s);
 
 static te_expr *base(state *s) {
-  /* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-X> "(" <expr> {"," <expr>} ")" | "(" <list> ")" */
+  /* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} |
+   * <function-1> <power> | <function-X> "(" <expr> {"," <expr>} ")" | "("
+   * <list> ")" */
   te_expr *ret;
   int arity;
 
@@ -564,7 +580,8 @@ static te_expr *factor(state *s) {
       te_expr *p = power(s);
       CHECK_NULL(p, te_free(ret));
 
-      te_expr *insert = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], p);
+      te_expr *insert =
+          NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], p);
       CHECK_NULL(insert, te_free(p), te_free(ret));
 
       insert->function = t;
@@ -621,7 +638,8 @@ static te_expr *term(state *s) {
   te_expr *ret = factor(s);
   CHECK_NULL(ret);
 
-  while (s->type == TOK_INFIX && (s->function == mul || s->function == divide || s->function == fmod)) {
+  while (s->type == TOK_INFIX &&
+         (s->function == mul || s->function == divide || s->function == fmod)) {
     te_fun2 t = s->function;
     next_token(s);
     te_expr *f = factor(s);
@@ -711,11 +729,14 @@ double te_eval(const te_expr *n) {
     case 4:
       return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
     case 5:
-      return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
+      return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2),
+                                                            M(3), M(4));
     case 6:
-      return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
+      return TE_FUN(double, double, double, double, double,
+                    double)(M(0), M(1), M(2), M(3), M(4), M(5));
     case 7:
-      return TE_FUN(double, double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+      return TE_FUN(double, double, double, double, double, double,
+                    double)(M(0), M(1), M(2), M(3), M(4), M(5), M(6));
     default:
       return NAN;
     }
@@ -736,15 +757,21 @@ double te_eval(const te_expr *n) {
     case 2:
       return TE_FUN(void *, double, double)(n->parameters[2], M(0), M(1));
     case 3:
-      return TE_FUN(void *, double, double, double)(n->parameters[3], M(0), M(1), M(2));
+      return TE_FUN(void *, double, double, double)(n->parameters[3], M(0),
+                                                    M(1), M(2));
     case 4:
-      return TE_FUN(void *, double, double, double, double)(n->parameters[4], M(0), M(1), M(2), M(3));
+      return TE_FUN(void *, double, double, double,
+                    double)(n->parameters[4], M(0), M(1), M(2), M(3));
     case 5:
-      return TE_FUN(void *, double, double, double, double, double)(n->parameters[5], M(0), M(1), M(2), M(3), M(4));
+      return TE_FUN(void *, double, double, double, double,
+                    double)(n->parameters[5], M(0), M(1), M(2), M(3), M(4));
     case 6:
-      return TE_FUN(void *, double, double, double, double, double, double)(n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
+      return TE_FUN(void *, double, double, double, double, double, double)(
+          n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
     case 7:
-      return TE_FUN(void *, double, double, double, double, double, double, double)(n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+      return TE_FUN(void *, double, double, double, double, double, double,
+                    double)(n->parameters[7], M(0), M(1), M(2), M(3), M(4),
+                            M(5), M(6));
     default:
       return NAN;
     }
@@ -784,7 +811,8 @@ static void optimize(te_expr *n) {
   }
 }
 
-te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error) {
+te_expr *te_compile(const char *expression, const te_variable *variables,
+                    int var_count, int *error) {
   state s;
   s.start = s.next = expression;
   s.lookup = variables;

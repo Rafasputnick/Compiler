@@ -7,14 +7,14 @@
 
 #define HEADER_END_INDEX 3
 
-#define FOREACH_TOKEN(TOKEN)                                                                                                                                                                           \
-  TOKEN(Soma)                                                                                                                                                                                          \
-  TOKEN(Subtracao)                                                                                                                                                                                     \
-  TOKEN(Multiplicacao)                                                                                                                                                                                 \
-  TOKEN(Divisao)                                                                                                                                                                                       \
-  TOKEN(Exponenciacao)                                                                                                                                                                                 \
-  TOKEN(Inteiros)                                                                                                                                                                                      \
-  TOKEN(Reais)                                                                                                                                                                                         \
+#define FOREACH_TOKEN(TOKEN)                                                                       \
+  TOKEN(Soma)                                                                                      \
+  TOKEN(Subtracao)                                                                                 \
+  TOKEN(Multiplicacao)                                                                             \
+  TOKEN(Divisao)                                                                                   \
+  TOKEN(Exponenciacao)                                                                             \
+  TOKEN(Inteiros)                                                                                  \
+  TOKEN(Reais)                                                                                     \
   TOKEN(Indefinido)
 
 #define GENERATE_ENUM(ENUM) ENUM,
@@ -36,6 +36,7 @@ static const char *TOKEN_STRING[] = {FOREACH_TOKEN(GENERATE_STRING)};
 #define JZ 160
 #define HLT 240
 
+#define HEAD_SIZE 3
 #define INDEX_LIMIT 255
 
 typedef struct TokensValues {
@@ -137,7 +138,9 @@ void putInString(char *target, int *iTarget, char *source) {
   }
 }
 
-bool isNumberToken(HeadList *head, int index) { return head->list[index].token == Inteiros || head->list[index].token == Reais; }
+bool isNumberToken(HeadList *head, int index) {
+  return head->list[index].token == Inteiros || head->list[index].token == Reais;
+}
 
 char *printTokenList(HeadList *head, char *str) {
   uint64_t iList;
@@ -189,7 +192,7 @@ void freeHeadList(HeadList *head) {
   for (uint64_t i = 0; i < head->size; i++) {
     free(head->list[i].value);
   }
-  free(head->list);
+  if (head->size > 0) free(head->list);
   free(head);
 }
 
@@ -203,12 +206,9 @@ void throwError(char *message) {
   exit(1);
 }
 
-bool itsLanguageMnemonic(uint8_t mn) { return mn == NOP || mn == STA || mn == LDA || mn == ADD || mn == OR || mn == AND || mn == NOT || mn == JMP || mn == JN || mn == JZ || mn == HLT; }
-
-void validateIndex(int index) {
-  if (index < 0 || index >= INDEX_LIMIT) {
-    throwError("Try to use wrong index from tape");
-  }
+bool itsLanguageMnemonic(uint8_t mn) {
+  return mn == NOP || mn == STA || mn == LDA || mn == ADD || mn == OR || mn == AND || mn == NOT ||
+         mn == JMP || mn == JN || mn == JZ || mn == HLT;
 }
 
 void validateMalloc(void *pointer) {
@@ -264,44 +264,59 @@ float parser(HeadList *head) {
 
 bool itsNegative(uint8_t num) { return (num >> 7) == 1; }
 
+bool itsZero(uint8_t num) { return num == 0; }
+
+void cli_functions(HeadList *head){
+  char data[256];
+  memset(data, '\0', 256);
+  printf("> ");
+
+  while (fgets(data, 256, stdin) && strcmp(data, "quit\n") != 0) {
+    tokenizar(head, data);
+    float res = parser(head);
+    if (!invalidExpression)
+      printf("-> %f\n", res);
+
+    freeHeadList(head);
+    head = createHeadList();
+    invalidExpression = false;
+
+    printf("> ");
+  }
+}
+
 int main(int argc, char **argv) {
   uint8_t *programText = (uint8_t *)malloc(sizeof(uint8_t) * 260);
-  if (programText == NULL) {
-    throwError("Malloc return null");
+  validateMalloc(programText);
+
+  if (argc < 2)
+    throwError("Not found file path");
+
+  char *filePath = calloc(strlen(argv[1]), sizeof(char));
+  strcpy(filePath, argv[1]);
+
+  char *fileExtension = calloc(5, sizeof(char));
+  strcpy(fileExtension, filePath + strlen(filePath) - 4);
+
+  if (strcmp(fileExtension, ".nar") != 0)
+    throwError("Wrong extension, needs to be '.nar'");
+
+  FILE *file = fopen(argv[1], "rb");
+  if (file == NULL) {
+    perror("Error");
+    exit(1);
   }
-  // if (argc < 2)
-  // 	throwError("Not found file path");
 
-  // char *filePath = calloc(strlen(argv[1]), sizeof(char));
-  // strcpy(filePath, argv[1]);
+  fseek(file, 0, SEEK_END);
+  uint16_t fileSize = ftell(file);
+  rewind(file);
 
-  // char *fileExtension = calloc(5, sizeof(char));
-  // strcpy(fileExtension,filePath + strlen(filePath) - 4);
+  size_t resultSize = fread(programText, 1, fileSize, file);
+  if (resultSize != fileSize) {
+    throwError("Reading file");
+  }
 
-  // if(strcmp(fileExtension, ".nar") != 0)
-  // 	throwError("Wrong extension, needs to be '.nar'");
-
-  // FILE *file = fopen(argv[1], "rb");
-  //  if (file == NULL) {
-  //     perror("Error");
-  //     exit(1);
-  //  }
-
-  //  fseek(file, 0, SEEK_END);
-  //  uint16_t fileSize = ftell(file);
-  //  rewind(file);
-
-  //  size_t resultSize = fread(programText, 1, fileSize, file);
-  //  if (resultSize != fileSize) {
-  //     throwError("Reading file");
-  //  }
-
-  //  fclose(file);
-
-  // Simulando o arquivo
-  programText[0] = (uint8_t)atoi("43");
-  programText[1] = (uint8_t)atoi("1");
-  programText[2] = (uint8_t)atoi("2");
+  fclose(file);
 
   uint8_t neanderSignature = programText[0];
   uint8_t ac = programText[1];
@@ -313,56 +328,75 @@ int main(int argc, char **argv) {
 
   HeadList *head = createHeadList();
 
-  char data[256];
-  memset(data, '\0', 256);
-  printf("> ");
-
+  uint8_t *program = programText + HEAD_SIZE;
   bool jmp = false;
-  while (pc <= INDEX_LIMIT) {
-    validateIndex(pc);
+  bool next = true;
+  while (next) {
 
-    switch (programText[pc]) {
-    case NOP:
-      break;
+    switch (program[pc]) {
     case STA:
+      pc++;
+      program[program[pc]] = ac;
       break;
     case LDA:
+      pc++;
+      ac = program[program[pc]];
       break;
     case ADD:
+      pc++;
+      ac += program[program[pc]];
       break;
     case OR:
+      pc++;
+      ac |= program[program[pc]];
       break;
     case AND:
+      pc++;
+      ac &= program[program[pc]];
       break;
     case NOT:
+      ac = ~ac;
       break;
     case JMP:
+      pc++;
+      pc = program[pc];
       jmp = true;
       break;
     case JN:
+      pc++;
+      if (itsNegative(ac)) {
+        pc = program[pc];
+        jmp = true;
+      }
       break;
     case JZ:
+      pc++;
+      if (itsZero(ac)) {
+        pc = program[pc];
+        jmp = true;
+      }
       break;
     case HLT:
+      next = false;
+      break;
+    default:
       break;
     }
+    if (pc == INDEX_LIMIT && !jmp)
+      next = false;
     if (!jmp)
       pc++;
     jmp = false;
   }
 
-  // while (fgets(data, 256, stdin) && strcmp(data, "quit\n") != 0) {
-  //   tokenizar(head, data);
-  //   float res = parser(head);
-  //   if (!invalidExpression)
-  //     printf("-> %f\n", res);
+  printf("Acumulador = %d\n", ac);
+  printf("Contador do programa = %d\n", pc);
+  printf("Flag N = %d\n", itsNegative(ac));
+  printf("Flag Z = %d\n", itsZero(ac));
 
-  //   freeHeadList(head);
-  //   head = createHeadList();
-  //   invalidExpression = false;
-
-  //   printf("> ");
-  // }
+  for (int i = 0; i < 256; i++) {
+    printf("%d - %d\n", i, program[i]);
+  }
 
   free(programText);
   freeHeadList(head);

@@ -9,8 +9,9 @@
             "type": "gdb",
             "request": "launch",
             "target": "main",
+            "arguments": "entrada.nar",
             "cwd": "${workspaceFolder}/nre/",
-            "preLaunchTask": "compile",
+            "preLaunchTask": "build",
             "valuesFormatting": "parseText"
         }
     ]

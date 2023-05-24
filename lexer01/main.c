@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FOREACH_TOKEN(TOKEN)                                                                                                                                                                           \
-  TOKEN(Soma)                                                                                                                                                                                          \
-  TOKEN(Subtracao)                                                                                                                                                                                     \
-  TOKEN(Multiplicacao)                                                                                                                                                                                 \
-  TOKEN(Divisao)                                                                                                                                                                                       \
+#define FOREACH_TOKEN(TOKEN)                                                   \
+  TOKEN(Soma)                                                                  \
+  TOKEN(Subtracao)                                                             \
+  TOKEN(Multiplicacao)                                                         \
+  TOKEN(Divisao)                                                               \
   TOKEN(Indefinido)
 
 #define GENERATE_ENUM(ENUM) ENUM,
