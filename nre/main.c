@@ -37,7 +37,7 @@ static const char *TOKEN_STRING[] = {FOREACH_TOKEN(GENERATE_STRING)};
 #define HLT 240
 
 #define HEAD_SIZE 3
-#define INDEX_LIMIT 255
+#define PROGRAM_LIMIT 256
 
 typedef struct TokensValues {
   enum Token token;
@@ -192,7 +192,8 @@ void freeHeadList(HeadList *head) {
   for (uint64_t i = 0; i < head->size; i++) {
     free(head->list[i].value);
   }
-  if (head->size > 0) free(head->list);
+  if (head->size > 0)
+    free(head->list);
   free(head);
 }
 
@@ -266,7 +267,7 @@ bool itsNegative(uint8_t num) { return (num >> 7) == 1; }
 
 bool itsZero(uint8_t num) { return num == 0; }
 
-void cli_functions(HeadList *head){
+void cli_functions(HeadList *head) {
   char data[256];
   memset(data, '\0', 256);
   printf("> ");
@@ -315,6 +316,9 @@ int main(int argc, char **argv) {
   if (resultSize != fileSize) {
     throwError("Reading file");
   }
+
+  if (resultSize < HEAD_SIZE + 1 || resultSize > PROGRAM_LIMIT + HEAD_SIZE)
+    throwError("Invalid size of .nar");
 
   fclose(file);
 
@@ -382,7 +386,7 @@ int main(int argc, char **argv) {
     default:
       break;
     }
-    if (pc == INDEX_LIMIT && !jmp)
+    if (pc == PROGRAM_LIMIT - 1 && !jmp)
       next = false;
     if (!jmp)
       pc++;

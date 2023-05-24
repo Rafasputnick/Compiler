@@ -5,14 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FOREACH_TOKEN(TOKEN)                                                   \
-  TOKEN(Soma)                                                                  \
-  TOKEN(Subtracao)                                                             \
-  TOKEN(Multiplicacao)                                                         \
-  TOKEN(Divisao)                                                               \
-  TOKEN(Exponenciacao)                                                         \
-  TOKEN(Inteiros)                                                              \
-  TOKEN(Reais)                                                                 \
+#define FOREACH_TOKEN(TOKEN)                                                                       \
+  TOKEN(Soma)                                                                                      \
+  TOKEN(Subtracao)                                                                                 \
+  TOKEN(Multiplicacao)                                                                             \
+  TOKEN(Divisao)                                                                                   \
+  TOKEN(Exponenciacao)                                                                             \
+  TOKEN(Inteiros)                                                                                  \
+  TOKEN(Reais)                                                                                     \
   TOKEN(Indefinido)
 
 #define GENERATE_ENUM(ENUM) ENUM,
@@ -125,8 +125,7 @@ char *printTokenList(HeadList *head, char *str) {
   putInString(str, iStr, '\n');
   bool isNumber = false;
   for (iList = 0; iList < head->size; iList++) {
-    isNumber =
-        head->list[iList].token == Inteiros || head->list[iList].token == Reais;
+    isNumber = head->list[iList].token == Inteiros || head->list[iList].token == Reais;
 
     putInString(str, iStr, '\t');
     strcpy(str + *iStr, TOKEN_STRING[head->list[iList].token]);

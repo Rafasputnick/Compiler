@@ -5,14 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FOREACH_TOKEN(TOKEN)                                                   \
-  TOKEN(Soma)                                                                  \
-  TOKEN(Subtracao)                                                             \
-  TOKEN(Multiplicacao)                                                         \
-  TOKEN(Divisao)                                                               \
-  TOKEN(Exponenciacao)                                                         \
-  TOKEN(Inteiros)                                                              \
-  TOKEN(Reais)                                                                 \
+#define FOREACH_TOKEN(TOKEN)                                                                       \
+  TOKEN(Soma)                                                                                      \
+  TOKEN(Subtracao)                                                                                 \
+  TOKEN(Multiplicacao)                                                                             \
+  TOKEN(Divisao)                                                                                   \
+  TOKEN(Exponenciacao)                                                                             \
+  TOKEN(Inteiros)                                                                                  \
+  TOKEN(Reais)                                                                                     \
   TOKEN(Indefinido)
 
 #define GENERATE_ENUM(ENUM) ENUM,
@@ -136,8 +136,7 @@ void putInString(char *target, int *iTarget, char *source) {
 }
 
 bool isNumberToken(HeadList *head, int index) {
-  return head->list[index].token == Inteiros ||
-         head->list[index].token == Reais;
+  return head->list[index].token == Inteiros || head->list[index].token == Reais;
 }
 
 char *printTokenList(HeadList *head, char *str) {
@@ -205,9 +204,8 @@ void throwError(char *message) {
 }
 
 bool itsLanguageMnemonic(uint8_t mn) {
-  return mn == NOP || mn == STA || mn == LDA || mn == ADD || mn == OR ||
-         mn == AND || mn == NOT || mn == JMP || mn == JN || mn == JZ ||
-         mn == HLT;
+  return mn == NOP || mn == STA || mn == LDA || mn == ADD || mn == OR || mn == AND || mn == NOT ||
+         mn == JMP || mn == JN || mn == JZ || mn == HLT;
 }
 
 void validateIndex(int index) {
